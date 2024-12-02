@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docker 镜像搜索</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .search-container {
+      margin-bottom: 20px;
+    }
+
+    .search-container input {
+      width: 300px;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .search-container button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    table th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="search-container">
+    <input type="text" id="searchBox" placeholder="请输入镜像名称">
+    <button onclick="searchImages()">搜索</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>镜像库</th>
+        <th>来源</th>
+        <th>版本</th>
+      </tr>
+    </thead>
+    <tbody id="resultsTable">
+      <!-- 搜索结果会动态插入到这里 -->
+    </tbody>
+  </table>
+
+  <script>
+    async function searchImages() {
+      const searchQuery = document.getElementById("searchBox").value;
+      const resultsTable = document.getElementById("resultsTable");
+
+      // 清空表格
+      resultsTable.innerHTML = "";
+
+      if (!searchQuery.trim()) {
+        alert("请输入镜像名称进行搜索！");
+        return;
+      }
+
+      try {
+        // 使用 Docker Hub API 搜索镜像
+        const response = await axios.get(
+          `https://hub.docker.com/v2/repositories/library/${searchQuery}/tags`
+        );
+
+        // 提取返回的镜像数据
+        const results = response.data.results;
+
+        if (results.length === 0) {
+          resultsTable.innerHTML = "<tr><td colspan='3'>未找到相关镜像</td></tr>";
+          return;
+        }
+
+        // 动态生成表格内容
+        results.forEach((result) => {
+          const row = `
+            <tr>
+              <td>${searchQuery}</td>
+              <td>docker.io</td>
+              <td>${result.name}</td>
+            </tr>
+          `;
+          resultsTable.insertAdjacentHTML("beforeend", row);
+        });
+      } catch (error) {
+        console.error("搜索失败：", error);
+        resultsTable.innerHTML = "<tr><td colspan='3'>搜索失败，请稍后重试</td></tr>";
+      }
+    }
+  </script>
+</body>
+
+</html>
