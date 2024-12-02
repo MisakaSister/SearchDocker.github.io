@@ -1,56 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Docker 镜像搜索</title>
+  <title>镜像搜索页面</title>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
     }
-
-    .search-container {
-      margin-bottom: 20px;
-    }
-
-    .search-container input {
-      width: 300px;
-      padding: 10px;
-      font-size: 16px;
-    }
-
-    .search-container button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
     }
-
-    table th, table td {
+    table, th, td {
       border: 1px solid #ddd;
+    }
+    th, td {
       padding: 8px;
       text-align: left;
     }
-
-    table th {
+    th {
       background-color: #f2f2f2;
+    }
+    .loading {
+      color: blue;
+      font-style: italic;
+    }
+    .error {
+      color: red;
     }
   </style>
 </head>
-
 <body>
-  <div class="search-container">
-    <input type="text" id="searchBox" placeholder="请输入镜像名称">
-    <button onclick="searchImages()">搜索</button>
-  </div>
+  <h1>Docker 镜像搜索</h1>
+  <label for="search">镜像名称：</label>
+  <input type="text" id="search" placeholder="输入镜像名称">
+  <button onclick="searchImages()">搜索</button>
+  <p id="status" class="loading"></p>
 
   <table>
     <thead>
@@ -60,56 +49,60 @@
         <th>版本</th>
       </tr>
     </thead>
-    <tbody id="resultsTable">
-      <!-- 搜索结果会动态插入到这里 -->
+    <tbody id="results">
+      <!-- 搜索结果将动态插入 -->
     </tbody>
   </table>
 
   <script>
     async function searchImages() {
-      const searchQuery = document.getElementById("searchBox").value;
-      const resultsTable = document.getElementById("resultsTable");
+      const searchInput = document.getElementById('search').value;
+      const statusElement = document.getElementById('status');
+      const resultsElement = document.getElementById('results');
 
-      // 清空表格
-      resultsTable.innerHTML = "";
-
-      if (!searchQuery.trim()) {
-        alert("请输入镜像名称进行搜索！");
+      if (!searchInput.trim()) {
+        statusElement.textContent = "请输入镜像名称";
+        statusElement.className = "error";
         return;
       }
 
+      statusElement.textContent = "正在搜索，请稍候...";
+      statusElement.className = "loading";
+
+      resultsElement.innerHTML = ""; // 清空之前的搜索结果
+
+      const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+      const apiUrl = `https://hub.docker.com/v2/repositories/${encodeURIComponent(searchInput)}/tags`;
+
       try {
-        // 使用 Docker Hub API 搜索镜像
-        const response = await axios.get(
-          `https://index.docker.io/v1/search?q=${searchQuery}`
-        );
+        const response = await axios.get(proxyUrl + apiUrl);
+        const data = response.data.results;
 
-        // 提取返回的镜像数据
-        const results = response.data.results;
-
-        if (results.length === 0) {
-          resultsTable.innerHTML = "<tr><td colspan='3'>未找到相关镜像</td></tr>";
+        if (data.length === 0) {
+          statusElement.textContent = "没有找到相关镜像";
+          statusElement.className = "error";
           return;
         }
 
-        // 动态生成表格内容
-        results.forEach((result) => {
-          console.log(result);
-          const row = `
-            <tr>
-              <td>${searchQuery}</td>
-              <td>docker.io</td>
-              <td>${result.name}</td>
-            </tr>
+        // 动态生成表格行
+        data.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${searchInput}</td>
+            <td>docker.io</td>
+            <td>${item.name}</td>
           `;
-          resultsTable.insertAdjacentHTML("beforeend", row);
+          resultsElement.appendChild(row);
         });
+
+        statusElement.textContent = "搜索完成";
+        statusElement.className = "";
       } catch (error) {
-        console.error("搜索失败：", error);
-        resultsTable.innerHTML = "<tr><td colspan='3'>搜索失败，请稍后重试</td></tr>";
+        console.error(error);
+        statusElement.textContent = "搜索失败，请检查网络或代理服务是否可用";
+        statusElement.className = "error";
       }
     }
   </script>
 </body>
-
 </html>
