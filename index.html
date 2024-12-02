@@ -81,7 +81,7 @@
       try {
         // 使用 Docker Hub API 搜索镜像
         const response = await axios.get(
-          `https://hub.docker.com/v2/repositories/library/${searchQuery}/tags`
+          `https://index.docker.io/v1/search?q=${searchQuery}`
         );
 
         // 提取返回的镜像数据
@@ -94,6 +94,7 @@
 
         // 动态生成表格内容
         results.forEach((result) => {
+          console.log(result);
           const row = `
             <tr>
               <td>${searchQuery}</td>
